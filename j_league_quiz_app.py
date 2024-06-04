@@ -1,7 +1,7 @@
 import streamlit as st
-from PIL import Image
+import json
+import os
 import random
-
 
 # チームごとのクイズデータ（例）
 quiz_data = {
@@ -433,16 +433,20 @@ quiz_data = {
 }
 
 
+# 表示する問題数
+NUM_QUESTIONS = 3
+
 # ユーザー情報の入力
 st.title("Jリーグクイズアプリ")
+st.write("このクイズは各チーム全５問のうち、３問をランダムに出題し、点数を付けています。")
 
 # チーム選択
 team = st.selectbox("チームを選択してください", list(quiz_data.keys()))
 
 # クイズの表示と採点処理
 if st.button("クイズを開始"):
-    # クイズの質問を選択
-    questions = quiz_data[team]
+    # クイズの質問を選択し、ランダムに3問抽出
+    questions = random.sample(quiz_data[team], NUM_QUESTIONS)
     
     # ユーザーの回答を保存するためのセッションステート
     if 'user_answers' not in st.session_state:
@@ -450,6 +454,7 @@ if st.button("クイズを開始"):
     if 'quiz_started' not in st.session_state:
         st.session_state.quiz_started = True
         st.session_state.questions = questions
+        st.session_state.show_answers = False
 
 if 'quiz_started' in st.session_state and st.session_state.quiz_started:
     # クイズの質問を表示
@@ -465,5 +470,20 @@ if 'quiz_started' in st.session_state and st.session_state.quiz_started:
     if st.button("採点"):
         score = sum(1 for idx, q in enumerate(questions) if st.session_state.user_answers[idx] == q["answer"])
         
-        # 結果を表示
-        st.write(f"あなたの得点は: {score}/{len(questions)}")
+        # 結果を大きなフォントで表示
+        st.markdown(f"<h1>あなたの得点は: {score}/{len(questions)}</h1>", unsafe_allow_html=True)
+        st.session_state.show_answers = True
+
+if 'show_answers' in st.session_state and st.session_state.show_answers:
+    # 各質問の答えを表示
+    questions = st.session_state.questions
+    for idx, q in enumerate(questions):
+        st.write(f"Q{idx+1}: {q['question']}")
+        user_answer = st.session_state.user_answers[idx]
+        st.write(f"あなたの回答: {user_answer}")
+        st.write(f"正解: {q['answer']}")
+        if user_answer == q['answer']:
+            st.markdown("<span style='color: blue; font-size: large;'>正解！</span>", unsafe_allow_html=True)
+        else:
+            st.markdown("<span style='color: red; font-size: large;'>不正解！</span>", unsafe_allow_html=True)
+        st.write("---")
